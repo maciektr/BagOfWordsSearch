@@ -1,4 +1,6 @@
-
+*.pdf
+test_dir/*
+wiki/*
 # Created by https://www.gitignore.io/api/venv,flask,django,python,pycharm+all,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=venv,flask,django,python,pycharm+all,jupyternotebooks
 
