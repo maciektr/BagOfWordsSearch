@@ -1,5 +1,5 @@
 from alphabet_detector import AlphabetDetector
-from scipy.sparse import dok_matrix, vstack
+from scipy.sparse import lil_matrix, hstack
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 from string import punctuation
@@ -14,7 +14,9 @@ class WordsProcess:
     def __init__(self, folder_path):
         nltk.download('stopwords', quiet=True)
         self.pages = {}
-        self.vectors = {}
+        self.vectors = None
+        self.matrix = None
+        self.term_id = {}
         self.terms = None
         self.folder_path = os.path.abspath(folder_path)
         self.read_pages()
@@ -80,8 +82,13 @@ class WordsProcess:
             res = list(filter(lambda w: len(w) > 1, map(WordsProcess.process_word, res)))
             return path.split('/')[-1], res
 
+    def calc_term_index(self):
+        terms = sorted(self.get_all_terms())
+        for i in range(len(terms)):
+            self.term_id[terms[i]] = i
+
     def get_page_vector(self, page):
-        result = dok_matrix((len(self.terms), 1))
+        result = lil_matrix((len(self.terms), 1))
         words = self.pages[page]
         bag = {}
         for word in words:
@@ -90,17 +97,47 @@ class WordsProcess:
             else:
                 bag[word] = 1
         for key, val in sorted(bag.items()):
-            result[self.terms.index(key)] = val
-        return result
+            if key not in self.term_id:
+                self.term_id[key] = self.terms.index(key)
+            result[self.term_id[key]] = val
+        return page, result
 
     def get_all_vectors(self):
-        for page in self.pages.keys():
-            self.vectors[page] = self.get_page_vector(page)
+        if self.vectors is not None:
+             return self.vectors
+        self.vectors = {}
+        with multiprocessing.Pool(processes=8) as pool:
+            res = pool.map(self.get_page_vector, self.pages.keys())
+        for page, vect in res:
+            self.vectors[page] = vect
         return self.vectors
+
+    def stack_vectors(self):
+        if self.vectors is None:
+            self.get_all_vectors()
+        vectors = [val for key, val in sorted(self.vectors.items(), key=lambda x:x[0])]
+        return hstack(vectors)
+
+    def get_matrix(self):
+        if self.matrix is not None:
+            return self.matrix
+        self.matrix = lil_matrix(self.stack_vectors())
+        n_docs = len(self.pages.keys())
+        for col in range(self.matrix.shape[1]):
+            self.matrix[:, col] = self.matrix[:, col] * np.log(n_docs / np.sum(self.matrix[:,col] > 0))
+        return self.matrix
 
 
 if __name__ == '__main__':
-    folder = '../wiki'
-    # folder = '../test_dir'
+    # folder = '../wiki'
+    folder = '../test_dir'
     proc = WordsProcess(folder)
-    proc.get_all_vectors()
+    # print(proc.get_all_vectors())
+    print(proc.get_matrix())
+
+    # _, a = proc.get_page_vector('Asian_Century')
+    # print(np.sum(a), a)
+    # print('----------')
+    # print(proc.get_all_vectors())
+    # print('----------')
+    # print(np.sum(proc.vectors['Asian_Century']), proc.vectors['Asian_Century'])
