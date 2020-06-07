@@ -1,10 +1,12 @@
 Flask==1.1.2
 jupyter==1.0.0
 notebook==6.0.3
-numpy==1.18.4
+numpy
 scipy==1.4.1
 requests
 alphabet_detector
 nltk
 html2text
 bs4
+Flask-admin
+Flask-SQLAlchemy==2.4.1

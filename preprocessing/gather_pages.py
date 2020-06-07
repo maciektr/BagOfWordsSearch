@@ -4,6 +4,9 @@ import urllib.request
 import requests
 import os
 
+from search_web.models import db
+from search_web.models.article import Article
+
 
 class GatherPages:
     _N_PROC = 8
@@ -44,7 +47,13 @@ class GatherPages:
         if os.path.exists(file_name):
             return
 
-        url = 'https://en.wikipedia.org' + url
+        if url[:5] == '/wiki':
+            url = 'https://en.wikipedia.org' + url
+
+        art = Article(url=url, local_path=file_name)
+        db.session.add(art)
+        db.session.commit()
+
         page = urllib.request.urlopen(url).read()
         print('Downloading:', file_name)
         with open(file_name, 'wb') as file:
