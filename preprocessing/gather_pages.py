@@ -12,7 +12,8 @@ class GatherPages:
     _N_PROC = 8
     folder = ''
 
-    def __init__(self):
+    def __init__(self, folder):
+        GatherPages.folder = folder
         self.pages_url = []
 
     @staticmethod
@@ -50,7 +51,7 @@ class GatherPages:
         if url[:5] == '/wiki':
             url = 'https://en.wikipedia.org' + url
 
-        art = Article(url=url, local_path=file_name)
+        art = Article(url=url, local_path=file_name, title=url.split('/')[-1])
         db.session.add(art)
         db.session.commit()
 
