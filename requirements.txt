@@ -7,3 +7,4 @@ requests
 alphabet_detector
 nltk
 html2text
+bs4
