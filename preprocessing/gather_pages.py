@@ -7,7 +7,7 @@ import os
 
 class GatherPages:
     _N_PROC = 8
-    folder = '../wiki_pages'
+    folder = ''
 
     def __init__(self):
         self.pages_url = []
