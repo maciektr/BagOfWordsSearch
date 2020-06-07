@@ -1,1 +1,12 @@
 {% extends "base.html" %}
+{% block content %}
+
+    <form action="{{ url_for('search') }}" method="post">
+        <div class="form-group">
+            <input type="text" class="form-control" name="query" id="queryInput" aria-describedby="emailHelp" placeholder="What are you looking for?">
+            <small id="queryInpuHelp" class="form-text text-muted">Please enter your query above.</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+{% endblock %}
