@@ -14,9 +14,10 @@ from .words import WordsProcess
 class SearchPreprocessing:
     folder_path = ''
 
-    def __init__(self, folder_path):
+    def __init__(self, folder_path, svd_denoise=True):
         warnings.simplefilter('ignore', SparseEfficiencyWarning)
         SearchPreprocessing.folder_path = folder_path
+        self.svd_denoise = svd_denoise
 
         self.pages = {}
         self.vectors = None
@@ -102,14 +103,21 @@ class SearchPreprocessing:
     def idf_norm(self, matrix):
         n_docs = len(self.pages.keys())
         idf = np.log(n_docs / np.sum(matrix > 0, axis=1))
-        idf_mat = np.array([idf, ] * matrix.shape[1]).T
-        return matrix * idf_mat
+        for col in range(matrix.shape[1]):
+            matrix[:, col] = (matrix[:, col].reshape((1, -1)).dot(idf).reshape((-1, 1)))
+        return matrix
+
+    def denoise(self, matrix):
+        if not self.svd_denoise:
+            return matrix
+        return matrix
 
     def get_matrix(self):
         if self.matrix is not None:
             return self.matrix
         self.matrix = csr_matrix(self.stack_vectors())
-        # self.matrix = self.idf_norm(self.matrix)
+        self.matrix = self.idf_norm(self.matrix)
+        self.matrix = self.denoise(self.matrix)
         return self.matrix
 
     def get_all_pages(self):
