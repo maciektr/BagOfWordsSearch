@@ -41,7 +41,8 @@ class WordsProcess:
         return word
 
     @staticmethod
-    def tokenize_file(path):
+    def tokenize_file(article):
+        path = article.local_path
         h = html2text.HTML2Text()
         h.ignore_links = True
         h.ignore_images = True
@@ -50,5 +51,5 @@ class WordsProcess:
         with open(path, 'r') as file:
             res = h.handle(file.read()).split()
             res = list(filter(lambda w: len(w) > 1, map(WordsProcess.process_word, res)))
-            return path.split('/')[-1], res
-
+            # return path.split('/')[-1], res
+            return article.id, res
