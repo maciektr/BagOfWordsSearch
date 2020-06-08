@@ -10,3 +10,4 @@ class Article(db.Model):
     url = db.Column(db.String(2048), unique=True, nullable=False)
     local_path = db.Column(db.String(2048), unique=True, nullable=False)
     title = db.Column(db.String(256), nullable=False)
+    words_cache = db.Column(db.JSON(), nullable=True)
