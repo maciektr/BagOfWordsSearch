@@ -13,9 +13,14 @@ KEY_SIGNING_SECRET = os.getenv("SIGNING_SECRET",
 PAGES_FOLDER = 'wiki_pages'
 # Loads all pages linked in pages listed below
 PAGES_SOURCE = [
-    # Cars by make
-    # 'https://en.wikipedia.org/wiki/List_of_Kia_Motors_automobiles',
+    # Cars by make:
+    # Big:
     'https://en.wikipedia.org/wiki/List_of_Toyota_vehicles',
+    # Medium
+    # 'https://en.wikipedia.org/wiki/List_of_Kia_Motors_automobiles',
+    # Small
+    # 'https://en.wikipedia.org/wiki/List_of_Geo_vehicles',
+    # Other
     # 'https://en.wikipedia.org/wiki/List_of_Lexus_vehicles',
     # Countries
     # 'https://simple.wikipedia.org/wiki/Elon_Musk',
