@@ -1,4 +1,4 @@
-from scipy.sparse import lil_matrix, hstack, csr_matrix, SparseEfficiencyWarning
+from scipy.sparse import lil_matrix, hstack, csr_matrix, SparseEfficiencyWarning, linalg, diags
 from sklearn.preprocessing import normalize
 import multiprocessing
 import numpy as np
@@ -14,16 +14,22 @@ from .words import WordsProcess
 class SearchPreprocessing:
     folder_path = ''
 
-    def __init__(self, folder_path, svd_denoise=True):
+    def __init__(self, folder_path, low_rank_approx=None):
         warnings.simplefilter('ignore', SparseEfficiencyWarning)
         SearchPreprocessing.folder_path = folder_path
-        self.svd_denoise = svd_denoise
+        self.approx_k = low_rank_approx
 
         self.pages = {}
         self.vectors = None
         self.matrix = None
         self.term_id = {}
         self.terms = None
+
+    def n_articles_loaded(self):
+        return len(self.pages.keys())
+
+    def n_terms(self):
+        return len(self.get_all_terms())
 
     def all_articles(self):
         return Article.query.order_by(Article.title).all()
@@ -103,21 +109,33 @@ class SearchPreprocessing:
     def idf_norm(self, matrix):
         n_docs = len(self.pages.keys())
         idf = np.log(n_docs / np.sum(matrix > 0, axis=1))
+        print('Performing IDF transform')
         for col in range(matrix.shape[1]):
-            matrix[:, col] = (matrix[:, col].reshape((1, -1)).dot(idf).reshape((-1, 1)))
+            matrix[:, col] = matrix[:, col].multiply(idf)
         return matrix
 
-    def denoise(self, matrix):
-        if not self.svd_denoise:
+    def low_rank_approx(self, matrix):
+        if self.approx_k is None or self.approx_k <= 0:
             return matrix
+
+        print('Performing low rank approx for value:', self.approx_k)
+        u, s, vh = linalg.svds(matrix, k=self.approx_k)
+
+        # matrix as sparse
+        # matrix = csr_matrix(u).dot(diags(s).dot(csr_matrix(vh)))
+
+        # matrix as ndarray
+        matrix = u @ np.diag(s) @ vh
+
         return matrix
 
     def get_matrix(self):
         if self.matrix is not None:
             return self.matrix
         self.matrix = csr_matrix(self.stack_vectors())
+        normalize(self.matrix, copy=False, norm='l1', axis=0)
         self.matrix = self.idf_norm(self.matrix)
-        self.matrix = self.denoise(self.matrix)
+        self.matrix = self.low_rank_approx(self.matrix)
         return self.matrix
 
     def get_all_pages(self):
@@ -132,11 +150,19 @@ class SearchPreprocessing:
         return matrix / np.linalg.norm(matrix, axis=0)
 
     def search(self, query, n_pages=10):
-        query = normalize(self.get_bag_from_queries(query), norm='l1', axis=0)
-        normalize(self.matrix, copy=False, norm='l1', axis=0)
-        correlation = []
-        for col in range(self.matrix.shape[1]):
-            correlation.append(float(self.matrix[:, col].reshape((1, -1)).dot(query)[0].toarray()[0]))
+        if self.matrix is None:
+            self.get_matrix()
+
+        # matrix as sparse
+        # query = normalize(self.get_bag_from_queries(query), norm='l1', axis=0)
+        # correlation = []
+        # for col in range(self.matrix.shape[1]):
+        #     correlation.append(float(self.matrix[:, col].reshape((1, -1)).dot(query)[0].toarray()[0]))
+
+        # matrix as ndarray
+        query = normalize(self.get_bag_from_queries(query), norm='l1', axis=0).toarray()
+        correlation = [float(self.matrix[:, col].reshape((1, -1)).dot(query)[0][0])\
+                       for col in range(self.matrix.shape[1])]
 
         ids = reversed(np.argpartition(correlation, -n_pages)[-n_pages:])
         pages = self.get_all_pages()
