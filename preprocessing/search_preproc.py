@@ -24,6 +24,7 @@ class SearchPreprocessing:
         self.matrix = None
         self.term_id = {}
         self.terms = None
+        WordsProcess()
 
     def n_articles_loaded(self):
         return len(self.pages.keys())
